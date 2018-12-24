@@ -20,7 +20,8 @@ A platformer game written using OpenGL.
 
 package com.codelog.fitch.graphics;
 
-class ShaderCompilationException extends Exception {
+@SuppressWarnings({ "unused", "WeakerAccess" })
+public class ShaderCompilationException extends Exception {
 
     public ShaderCompilationException() { super(); }
     public ShaderCompilationException(String message) { super(message); }

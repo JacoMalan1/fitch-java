@@ -20,33 +20,41 @@ A platformer game written using OpenGL.
 
 package com.codelog.fitch;
 
+import com.codelog.fitch.game.InputHandler;
 import com.codelog.fitch.game.Player;
+import com.codelog.fitch.graphics.Colour;
 import com.codelog.fitch.graphics.Drawable;
 import com.jogamp.newt.event.KeyEvent;
-import com.jogamp.newt.event.KeyListener;
 import com.jogamp.newt.event.WindowAdapter;
 import com.jogamp.newt.event.WindowEvent;
 import com.jogamp.newt.opengl.GLWindow;
 import com.jogamp.opengl.*;
+import com.jogamp.opengl.math.Matrix4;
 import com.jogamp.opengl.util.Animator;
 import glm_.vec2.Vec2;
 
 import java.util.ArrayList;
 import java.util.List;
 
-class Main implements GLDebugListener, GLEventListener, KeyListener {
+public class Main implements GLDebugListener, GLEventListener {
 
     private GLWindow window;
     private Animator animator;
-
     private Player player;
-
     private List<Drawable> drawList;
+    private InputHandler inputHandler;
+    private static Logger logger;
+
+    private String[] propsToLog = new String[] {
+            "os.name", "os.arch", "os.version", "java.vendor", "java.vm.name", "java.version"
+    };
+
+    public static Logger getLogger() { return logger; }
 
     public static void main(String[] args) {
+        logger = new Logger();
         new Main().setup();
     }
-
     private void setup() {
 
         GLProfile glProfile = GLProfile.get(GLProfile.GL4);
@@ -55,9 +63,11 @@ class Main implements GLDebugListener, GLEventListener, KeyListener {
         window.setTitle("Fitch");
         window.setSize(800, 600);
         window.setVisible(true);
+        window.setContextCreationFlags(GLContext.CTX_OPTION_DEBUG);
+        window.getContext().enableGLDebugMessage(true);
+        window.getContext().addGLDebugListener(this);
 
         window.addGLEventListener(this);
-        window.addKeyListener(this);
 
         animator = new Animator(window);
         window.setAnimator(animator);
@@ -69,6 +79,7 @@ class Main implements GLDebugListener, GLEventListener, KeyListener {
             @Override
             public void windowDestroyed(WindowEvent e) {
                 animator.stop();
+                logger.write();
                 System.exit(0);
             }
         });
@@ -76,34 +87,55 @@ class Main implements GLDebugListener, GLEventListener, KeyListener {
     }
 
     @Override
-    public void keyPressed(KeyEvent e) {
-
-    }
-
-    @Override
-    public void keyReleased(KeyEvent e) {
-
-    }
-
-    @Override
     public void init(GLAutoDrawable drawable) {
+
+        logSystemInfo();
 
         var gl = drawable.getGL().getGL4();
 
+        logger.log(this, LogSeverity.INFO, String.format("OpenGL version: %s\n", window.getContext().getGLVersion()));
+
+        gl.glDebugMessageControl(gl.GL_DONT_CARE, gl.GL_DONT_CARE, gl.GL_DONT_CARE, 0, null, 0, true);
+
         gl.glEnable(gl.GL_DEPTH_TEST);
+        gl.glEnable(gl.GL_DEBUG_OUTPUT_SYNCHRONOUS);
         gl.glEnable(gl.GL_BLEND);
+        gl.glEnable(gl.GL_TEXTURE_2D);
 
         gl.glBlendFunc(gl.GL_SRC_ALPHA, gl.GL_DST_ALPHA);
         gl.glDepthFunc(gl.GL_LEQUAL);
 
         drawList = new ArrayList<>();
 
-        player = new Player(new Vec2(50, 50), 50, 100);
+        player = new Player(new Vec2(50, 50), 30, 70);
         player.setDrawDepth(0.0f);
         drawList.add(player);
 
         for (Drawable d : drawList)
             d.init(gl);
+
+        inputHandler = new InputHandler();
+        inputHandler.init(window);
+
+        logger.log(this, LogSeverity.INFO, "Initialising...");
+
+    }
+
+    private void logSystemInfo() {
+
+        StringBuilder msgBuilder = new StringBuilder();
+        msgBuilder.append("System information:");
+        msgBuilder.append('\n');
+
+        for (String prop : propsToLog) {
+            msgBuilder.append('\t');
+            msgBuilder.append(prop);
+            msgBuilder.append('=');
+            msgBuilder.append(System.getProperty(prop));
+            msgBuilder.append('\n');
+        }
+
+        logger.log(this, LogSeverity.INFO, msgBuilder.toString());
 
     }
 
@@ -117,9 +149,15 @@ class Main implements GLDebugListener, GLEventListener, KeyListener {
 
         var gl = drawable.getGL().getGL4();
 
-        gl.glClearColor(128, 128, 0, 255);
+        float[] cfb = Colour.CornFlowerBlue.getFloats();
+        gl.glClearColor(cfb[0], cfb[1], cfb[2], cfb[3]);
         gl.glClearDepth(1.0f);
         gl.glClear(gl.GL_COLOR_BUFFER_BIT | gl.GL_DEPTH_BUFFER_BIT);
+
+        inputHandler.update();
+
+        if (inputHandler.keyDown(KeyEvent.VK_ESCAPE))
+            window.sendWindowEvent(WindowEvent.EVENT_WINDOW_DESTROYED);
 
         update(gl);
         render(gl);
@@ -144,6 +182,10 @@ class Main implements GLDebugListener, GLEventListener, KeyListener {
 
         for (Drawable d : drawList)
             d.update(gl);
+
+        Matrix4 mat = new Matrix4();
+        mat.makeOrtho(0, window.getWidth(), window.getHeight(), 0, 0.0f, 1.0f);
+        player.getMatrixStack().push(mat);
 
     }
 

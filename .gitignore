@@ -7,3 +7,13 @@ out
 
 # Ignore IntelliJ IDEA directory
 .idea
+*.iml
+
+# Ignore copyrighted material
+*.png
+*.wav
+*.jpg
+*.bmp
+
+# Ignore Fitch generated log files
+*.log

@@ -20,12 +20,17 @@ A platformer game written using OpenGL.
 
 package com.codelog.fitch.game;
 
+import com.codelog.fitch.Main;
 import com.codelog.fitch.graphics.*;
 import com.jogamp.opengl.GL4;
 import com.jogamp.opengl.math.Matrix4;
 import glm_.vec2.Vec2;
 
-@SuppressWarnings("unused")
+import java.io.IOException;
+
+import static com.codelog.fitch.graphics.Texture2D.loadTexture;
+
+@SuppressWarnings({"unused", "FieldCanBeLocal"})
 public class Player implements Drawable {
 
     private Vec2 pos;
@@ -34,6 +39,7 @@ public class Player implements Drawable {
     private boolean isStanding = false;
     private boolean isRunning = false;
     private float drawDepth = 0f;
+    private Texture2D texture;
 
     private ShaderProgram shaderProgram;
     private VertexArrayObject vao;
@@ -56,10 +62,10 @@ public class Player implements Drawable {
         float y = pos.getY();
 
         float[] vertices = {
-                x,          y,          drawDepth,
-                x + width,  y,          drawDepth,
-                x,          y + height, drawDepth,
-                x + width,  y + height,  drawDepth
+                x,          y,            drawDepth, 0, 0,
+                x + width,  y,            drawDepth, 1, 0,
+                x,          y + height,   drawDepth, 0, 1,
+                x + width,  y + height,   drawDepth, 0, 0
         };
 
         vbo.sendFloatData(gl, vertices);
@@ -71,7 +77,6 @@ public class Player implements Drawable {
         setupBuffers(gl);
 
         Matrix4 ident = new Matrix4();
-        ident.loadIdentity();
         matrixStack.push(ident);
 
     }
@@ -89,13 +94,19 @@ public class Player implements Drawable {
 
         try {
             shaderProgram.compile(gl);
-        } catch (Exception e) {
-            System.out.println(e.getLocalizedMessage());
+        } catch (ShaderCompilationException | IOException e) {
+            Main.getLogger().log(this, e);
         }
 
         setupBuffers(gl);
 
         matrixStack = new MatrixStack<>();
+
+        try {
+            texture = loadTexture(gl, "player.png");
+        } catch (IOException e) {
+            Main.getLogger().log(this, e);
+        }
     }
 
     @Override
@@ -104,6 +115,7 @@ public class Player implements Drawable {
         vao.bind(gl);
         vbo.bind(gl);
         shaderProgram.bind(gl);
+        texture.bind(gl);
 
         Matrix4 projMat = new Matrix4();
         projMat.loadIdentity();
@@ -117,16 +129,23 @@ public class Player implements Drawable {
         gl.glUniformMatrix4fv(handle, 1, false, projMat.getMatrix(), 0);
 
         gl.glEnableVertexArrayAttrib(vao.getID(), 0);
+        gl.glEnableVertexArrayAttrib(vao.getID(), 1);
 
-        gl.glVertexAttribPointer(0, 3, gl.GL_FLOAT, false, 3 * Float.BYTES, 0);
+        gl.glVertexAttribPointer(0, 3, gl.GL_FLOAT, false, 5 * Float.BYTES, 0);
+        gl.glVertexAttribPointer(1, 2, gl.GL_FLOAT, false, 5 * Float.BYTES, 3 * Float.BYTES);
 
-        gl.glDrawArrays(gl.GL_TRIANGLE_STRIP, 0, 4);
+        gl.glDrawArrays(gl.GL_QUADS, 0, 4);
+
         gl.glDisableVertexArrayAttrib(vao.getID(), 0);
+        gl.glDisableVertexArrayAttrib(vao.getID(), 1);
 
     }
 
     public Vec2 getPos() { return pos; }
     public void setPos(Vec2 pos) { this.pos = pos; }
+
+    public MatrixStack<Matrix4> getMatrixStack() { return matrixStack; }
+    public void loadMatrixStack(MatrixStack<Matrix4> _mstack) { matrixStack = _mstack; }
 
     public float getWidth() { return width; }
     public float getHeight() { return height; }
