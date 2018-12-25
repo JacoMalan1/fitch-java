@@ -20,9 +20,16 @@ A platformer game written using OpenGL.
 
 package com.codelog.fitch.graphics;
 
+import com.jogamp.opengl.math.Matrix4;
+
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Stack;
 
+import static java.util.stream.Collectors.toList;
+
+@SuppressWarnings("WeakerAccess")
 public class MatrixStack<T> {
 
     private List<T> matrices;
@@ -30,9 +37,15 @@ public class MatrixStack<T> {
 
     public MatrixStack() {
 
-        matrices = new Stack<>();
+        matrices = new ArrayList<>();
         numElements = 0;
 
+    }
+
+    @SuppressWarnings("unchecked")
+    public MatrixStack(MatrixStack other) {
+        this.matrices = new ArrayList<>(other.matrices);
+        this.numElements = other.numElements;
     }
 
     public void push(T mat) {
@@ -50,6 +63,22 @@ public class MatrixStack<T> {
         }
 
         return result;
+    }
+
+    public static Matrix4 flattenStack(MatrixStack<Matrix4> stack) {
+
+        Matrix4 result = new Matrix4();
+        result.loadIdentity();
+        Matrix4 tempMat;
+        while ((tempMat = stack.pop()) != null)
+            result.multMatrix(tempMat);
+
+        return result;
+
+    }
+
+    public MatrixStack<T> cloneStack() {
+        return new MatrixStack<>(this);
     }
 
 }

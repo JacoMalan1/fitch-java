@@ -20,17 +20,15 @@ A platformer game written using OpenGL.
 
 #version 330
 
-in vec2 texCoord;
-out vec4 fragColour;
+layout(location = 0) in vec3 vertexPosition;
+layout(location = 1) in vec2 bufferTexCoord;
 
-uniform sampler2D texSampler;
+out vec2 texCoord;
+uniform mat4 projMat;
 
 void main() {
 
-    fragColour = texture(texSampler, texCoord);
-
-    if (fragColour.a == 0) {
-        discard;
-    }
+    texCoord = bufferTexCoord;
+    gl_Position = projMat * vec4(vertexPosition.x, vertexPosition.y, 0.0, 1.0);
 
 }

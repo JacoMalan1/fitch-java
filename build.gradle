@@ -54,6 +54,7 @@ dependencies {
     // Compile-time libraries
     compile "org.jogamp.gluegen:gluegen-rt:2.3.1"
     compile "org.jogamp.jogl:jogl-all:2.3.1"
+    compile "org.dyn4j:dyn4j:3.3.0"
 
     // Runtime libraries
     runtime "org.jogamp.gluegen:gluegen-rt:2.3.1:natives-android-aarch64"

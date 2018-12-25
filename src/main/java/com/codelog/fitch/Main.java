@@ -20,11 +20,11 @@ A platformer game written using OpenGL.
 
 package com.codelog.fitch;
 
-import com.codelog.fitch.game.InputHandler;
 import com.codelog.fitch.game.Player;
-import com.codelog.fitch.graphics.Colour;
-import com.codelog.fitch.graphics.Drawable;
+import com.codelog.fitch.graphics.*;
+import com.codelog.fitch.graphics.Rectangle;
 import com.jogamp.newt.event.KeyEvent;
+import com.jogamp.newt.event.KeyListener;
 import com.jogamp.newt.event.WindowAdapter;
 import com.jogamp.newt.event.WindowEvent;
 import com.jogamp.newt.opengl.GLWindow;
@@ -32,18 +32,30 @@ import com.jogamp.opengl.*;
 import com.jogamp.opengl.math.Matrix4;
 import com.jogamp.opengl.util.Animator;
 import glm_.vec2.Vec2;
+import org.dyn4j.dynamics.Body;
+import org.dyn4j.dynamics.World;
+import org.dyn4j.geometry.MassType;
+import org.dyn4j.geometry.Vector2;
 
+import java.awt.*;
+import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
-public class Main implements GLDebugListener, GLEventListener {
+public class Main implements KeyListener, GLDebugListener, GLEventListener {
 
     private GLWindow window;
     private Animator animator;
     private Player player;
     private List<Drawable> drawList;
-    private InputHandler inputHandler;
     private static Logger logger;
+    private static Rectangle background;
+    private World world;
+    private Body floorBody;
+
+    private Map<String, Texture2D> textureMap;
 
     private String[] propsToLog = new String[] {
             "os.name", "os.arch", "os.version", "java.vendor", "java.vm.name", "java.version"
@@ -59,13 +71,20 @@ public class Main implements GLDebugListener, GLEventListener {
 
         GLProfile glProfile = GLProfile.get(GLProfile.GL4);
         GLCapabilities glCap = new GLCapabilities(glProfile);
+        glCap.setDepthBits(16);
         window = GLWindow.create(glCap);
         window.setTitle("Fitch");
-        window.setSize(800, 600);
+
+        int width = Toolkit.getDefaultToolkit().getScreenSize().width;
+        int height = Toolkit.getDefaultToolkit().getScreenSize().height;
+        window.setSize(width, height);
+        window.setFullscreen(true);
+        window.setPointerVisible(false);
         window.setVisible(true);
         window.setContextCreationFlags(GLContext.CTX_OPTION_DEBUG);
         window.getContext().enableGLDebugMessage(true);
         window.getContext().addGLDebugListener(this);
+        window.addKeyListener(this);
 
         window.addGLEventListener(this);
 
@@ -102,22 +121,47 @@ public class Main implements GLDebugListener, GLEventListener {
         gl.glEnable(gl.GL_BLEND);
         gl.glEnable(gl.GL_TEXTURE_2D);
 
-        gl.glBlendFunc(gl.GL_SRC_ALPHA, gl.GL_DST_ALPHA);
+        gl.glBlendFunc(gl.GL_SRC_ALPHA, gl.GL_ONE_MINUS_SRC_ALPHA);
         gl.glDepthFunc(gl.GL_LEQUAL);
 
         drawList = new ArrayList<>();
+        textureMap = new HashMap<>();
 
-        player = new Player(new Vec2(50, 50), 30, 70);
+        try {
+            textureMap.put("player", Texture2D.loadTexture(gl, "player.png"));
+            textureMap.put("background", Texture2D.loadTexture(gl, "background.png"));
+        } catch (IOException e) {
+            logger.log(this, e);
+        }
+
+        world = new World();
+
+        background = new Rectangle(0, 0, window.getWidth(), window.getHeight());
+        background.setDrawDepth(0.9f);
+        background.setUseTexture(true);
+        drawList.add(background);
+
+        player = new Player(new Vec2(0, 0), 50, 100);
         player.setDrawDepth(0.0f);
         drawList.add(player);
+
+        floorBody = new Body();
+        floorBody.translateToOrigin();
+        floorBody.translate(0f, 350);
+        floorBody.addFixture(new org.dyn4j.geometry.Rectangle((9f / 16f * 10f), 1));
+        floorBody.setMass(MassType.INFINITE);
+        world.addBody(floorBody);
 
         for (Drawable d : drawList)
             d.init(gl);
 
-        inputHandler = new InputHandler();
-        inputHandler.init(window);
+        player.setTexture(textureMap.get("player"), true);
+        background.setTexture(textureMap.get("background"), false);
 
         logger.log(this, LogSeverity.INFO, "Initialising...");
+
+        world.addBody(player.getPhysicsBody());
+        world.setGravity(World.EARTH_GRAVITY.multiply(-1));
 
     }
 
@@ -151,13 +195,8 @@ public class Main implements GLDebugListener, GLEventListener {
 
         float[] cfb = Colour.CornFlowerBlue.getFloats();
         gl.glClearColor(cfb[0], cfb[1], cfb[2], cfb[3]);
-        gl.glClearDepth(1.0f);
+        gl.glClearDepth(1f);
         gl.glClear(gl.GL_COLOR_BUFFER_BIT | gl.GL_DEPTH_BUFFER_BIT);
-
-        inputHandler.update();
-
-        if (inputHandler.keyDown(KeyEvent.VK_ESCAPE))
-            window.sendWindowEvent(WindowEvent.EVENT_WINDOW_DESTROYED);
 
         update(gl);
         render(gl);
@@ -183,17 +222,48 @@ public class Main implements GLDebugListener, GLEventListener {
         for (Drawable d : drawList)
             d.update(gl);
 
-        Matrix4 mat = new Matrix4();
-        mat.makeOrtho(0, window.getWidth(), window.getHeight(), 0, 0.0f, 1.0f);
-        player.getMatrixStack().push(mat);
+        world.step(2);
 
     }
 
     private void render(GL4 gl) {
+
+        Matrix4 mat = new Matrix4();
+        mat.makeOrtho(0, window.getWidth(), window.getHeight(), 0, 0f, 1f);
+        MatrixStack<Matrix4> stack = new MatrixStack<>();
+        stack.push(mat);
+
+        background.loadMatrixStack(stack.cloneStack());
+        player.loadMatrixStack(stack.cloneStack());
 
         for (Drawable d : drawList)
             d.draw(gl);
 
     }
 
+    @Override
+    public void keyPressed(KeyEvent e) {
+
+        switch (e.getKeyCode()) {
+            case KeyEvent.VK_ESCAPE:
+                window.destroy();
+                break;
+            case KeyEvent.VK_F11:
+                window.setFullscreen(!window.isFullscreen());
+                break;
+            case KeyEvent.VK_SPACE:
+                player.getPhysicsBody().applyImpulse(new Vector2(0, -500));
+                break;
+            case KeyEvent.VK_D:
+                player.getPhysicsBody().applyForce(new Vector2(2000, 0));
+            default:
+                break;
+        }
+
+    }
+
+    @Override
+    public void keyReleased(KeyEvent e) {
+
+    }
 }

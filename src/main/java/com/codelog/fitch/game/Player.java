@@ -25,6 +25,13 @@ import com.codelog.fitch.graphics.*;
 import com.jogamp.opengl.GL4;
 import com.jogamp.opengl.math.Matrix4;
 import glm_.vec2.Vec2;
+import org.dyn4j.dynamics.Body;
+import org.dyn4j.dynamics.BodyFixture;
+import org.dyn4j.dynamics.World;
+import org.dyn4j.geometry.Mass;
+import org.dyn4j.geometry.MassType;
+import org.dyn4j.geometry.Shape;
+import org.dyn4j.geometry.Vector2;
 
 import java.io.IOException;
 
@@ -40,6 +47,8 @@ public class Player implements Drawable {
     private boolean isRunning = false;
     private float drawDepth = 0f;
     private Texture2D texture;
+
+    private Body physicsBody;
 
     private ShaderProgram shaderProgram;
     private VertexArrayObject vao;
@@ -63,12 +72,12 @@ public class Player implements Drawable {
 
         float[] vertices = {
                 x,          y,            drawDepth, 0, 0,
-                x + width,  y,            drawDepth, 1, 0,
                 x,          y + height,   drawDepth, 0, 1,
-                x + width,  y + height,   drawDepth, 0, 0
+                x + width,  y,            drawDepth, 1, 0,
+                x + width,  y + height,   drawDepth, 1, 1,
         };
 
-        vbo.sendFloatData(gl, vertices);
+        vbo.sendFloatData(gl, vertices, gl.GL_DYNAMIC_DRAW);
 
     }
 
@@ -78,6 +87,9 @@ public class Player implements Drawable {
 
         Matrix4 ident = new Matrix4();
         matrixStack.push(ident);
+
+        Vector2 deltaPos = this.physicsBody.getChangeInPosition();
+        this.pos = this.pos.plus(new Vec2(deltaPos.x * 10, deltaPos.y * (9f / 16 * 10f)));
 
     }
 
@@ -89,8 +101,8 @@ public class Player implements Drawable {
         vbo = new VertexBufferObject(gl, gl.GL_ARRAY_BUFFER);
         vbo.bind(gl);
         shaderProgram = new ShaderProgram(gl);
-        shaderProgram.addVertexShader("pvshader.glsl");
-        shaderProgram.addFragmentShader("pfshader.glsl");
+        shaderProgram.addVertexShader("shaders/pvshader.glsl");
+        shaderProgram.addFragmentShader("shaders/pfshader.glsl");
 
         try {
             shaderProgram.compile(gl);
@@ -107,6 +119,16 @@ public class Player implements Drawable {
         } catch (IOException e) {
             Main.getLogger().log(this, e);
         }
+
+        physicsBody = new Body();
+        physicsBody.addFixture(new org.dyn4j.geometry.Rectangle(width, height), 0.1f);
+        physicsBody.translateToOrigin();
+        physicsBody.translate(new Vector2(this.pos.getX(), this.pos.getY()));
+        physicsBody.setMass(new Mass(new Vector2(0, 0), 20, 1.0));
+        physicsBody.setGravityScale(1);
+        physicsBody.setActive(true);
+        physicsBody.setAngularDamping(Double.MAX_VALUE);
+
     }
 
     @Override
@@ -117,13 +139,7 @@ public class Player implements Drawable {
         shaderProgram.bind(gl);
         texture.bind(gl);
 
-        Matrix4 projMat = new Matrix4();
-        projMat.loadIdentity();
-
-        // Unroll the matrix stack
-        Matrix4 temp;
-        while ((temp = matrixStack.pop()) != null)
-            projMat.multMatrix(temp);
+        Matrix4 projMat = MatrixStack.flattenStack(matrixStack);
 
         int handle = gl.glGetUniformLocation(shaderProgram.getID(), "projMat");
         gl.glUniformMatrix4fv(handle, 1, false, projMat.getMatrix(), 0);
@@ -134,7 +150,7 @@ public class Player implements Drawable {
         gl.glVertexAttribPointer(0, 3, gl.GL_FLOAT, false, 5 * Float.BYTES, 0);
         gl.glVertexAttribPointer(1, 2, gl.GL_FLOAT, false, 5 * Float.BYTES, 3 * Float.BYTES);
 
-        gl.glDrawArrays(gl.GL_QUADS, 0, 4);
+        gl.glDrawArrays(gl.GL_TRIANGLE_STRIP, 0, 4);
 
         gl.glDisableVertexArrayAttrib(vao.getID(), 0);
         gl.glDisableVertexArrayAttrib(vao.getID(), 1);
@@ -156,4 +172,15 @@ public class Player implements Drawable {
     public float getDrawDepth() { return drawDepth; }
     public void setDrawDepth(float _dd) { drawDepth = _dd; }
 
+    public Body getPhysicsBody() {
+        return physicsBody;
+    }
+
+    public void setTexture(Texture2D texture, boolean changeDims) {
+        this.texture = texture;
+        if (changeDims) {
+            this.width = texture.getWidth();
+            this.height = texture.getHeight();
+        }
+    }
 }

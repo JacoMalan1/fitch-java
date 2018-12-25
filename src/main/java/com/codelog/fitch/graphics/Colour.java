@@ -2,7 +2,7 @@ package com.codelog.fitch.graphics;
 
 import glm_.vec4.Vec4;
 
-@SuppressWarnings("WeakerAccess")
+@SuppressWarnings({ "WeakerAccess", "unused" })
 public class Colour {
 
     public static final Colour CornFlowerBlue = new Colour(new Vec4(100f / 255f, 149f / 255f, 237f / 255f, 1f));

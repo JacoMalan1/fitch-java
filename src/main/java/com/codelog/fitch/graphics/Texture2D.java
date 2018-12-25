@@ -57,6 +57,10 @@ public class Texture2D {
         float[] pixelData = new float[width * height * 4];
         data.getPixels(0, 0, width, height, pixelData);
 
+        for (int i = 0; i < pixelData.length; i++) {
+            pixelData[i] /= 255;
+        }
+
         IntBuffer buff = IntBuffer.allocate(1);
         gl.glGenTextures(1, buff);
         int id = buff.get(0);
@@ -64,8 +68,8 @@ public class Texture2D {
         FloatBuffer pixelBuffer = GLBuffers.newDirectFloatBuffer(pixelData);
         gl.glBindTexture(gl.GL_TEXTURE_2D, id);
         gl.glTexImage2D(gl.GL_TEXTURE_2D, 0, gl.GL_RGBA, width, height, 0, gl.GL_RGBA, gl.GL_FLOAT, pixelBuffer);
-        gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_MAG_FILTER, gl.GL_NEAREST);
-        gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_MIN_FILTER, gl.GL_NEAREST);
+        gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_MAG_FILTER, gl.GL_LINEAR);
+        gl.glTexParameteri(gl.GL_TEXTURE_2D, gl.GL_TEXTURE_MIN_FILTER, gl.GL_LINEAR);
 
         return new Texture2D(id, width, height);
 
