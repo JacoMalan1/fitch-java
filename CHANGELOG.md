@@ -11,3 +11,11 @@
 * Added MatrixStack class for use in Player.
 * Reorganized the drawing pipeline.
 * Created a Logger system.
+
+## v0.1.0 -- 25-12-2018
+
+* Merry Christmas!!
+* Removed dyn4j.
+* Added Vector2 class.
+* Added Block class.
+* Optimized Player class.

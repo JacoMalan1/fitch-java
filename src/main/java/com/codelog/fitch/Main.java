@@ -23,6 +23,8 @@ package com.codelog.fitch;
 import com.codelog.fitch.game.Player;
 import com.codelog.fitch.graphics.*;
 import com.codelog.fitch.graphics.Rectangle;
+import com.codelog.fitch.math.Vector2;
+import com.codelog.fitch.game.Block;
 import com.jogamp.newt.event.KeyEvent;
 import com.jogamp.newt.event.KeyListener;
 import com.jogamp.newt.event.WindowAdapter;
@@ -32,10 +34,6 @@ import com.jogamp.opengl.*;
 import com.jogamp.opengl.math.Matrix4;
 import com.jogamp.opengl.util.Animator;
 import glm_.vec2.Vec2;
-import org.dyn4j.dynamics.Body;
-import org.dyn4j.dynamics.World;
-import org.dyn4j.geometry.MassType;
-import org.dyn4j.geometry.Vector2;
 
 import java.awt.*;
 import java.io.IOException;
@@ -52,8 +50,7 @@ public class Main implements KeyListener, GLDebugListener, GLEventListener {
     private List<Drawable> drawList;
     private static Logger logger;
     private static Rectangle background;
-    private World world;
-    private Body floorBody;
+    private Block testBlock;
 
     private Map<String, Texture2D> textureMap;
 
@@ -130,38 +127,33 @@ public class Main implements KeyListener, GLDebugListener, GLEventListener {
         try {
             textureMap.put("player", Texture2D.loadTexture(gl, "player.png"));
             textureMap.put("background", Texture2D.loadTexture(gl, "background.png"));
+            textureMap.put("solid", Texture2D.loadTexture(gl, "solid.png"));
         } catch (IOException e) {
             logger.log(this, e);
         }
-
-        world = new World();
 
         background = new Rectangle(0, 0, window.getWidth(), window.getHeight());
         background.setDrawDepth(0.9f);
         background.setUseTexture(true);
         drawList.add(background);
 
-        player = new Player(new Vec2(0, 0), 50, 100);
+        testBlock = new Block(5, 5);
+        testBlock.getDrawRect().setDrawDepth(0.5f);
+        testBlock.getDrawRect().setUseTexture(true);
+        drawList.add(testBlock.getDrawRect());
+
+        player = new Player(new Vector2(0, 0), 50, 100);
         player.setDrawDepth(0.0f);
         drawList.add(player);
-
-        floorBody = new Body();
-        floorBody.translateToOrigin();
-        floorBody.translate(0f, 350);
-        floorBody.addFixture(new org.dyn4j.geometry.Rectangle((9f / 16f * 10f), 1));
-        floorBody.setMass(MassType.INFINITE);
-        world.addBody(floorBody);
 
         for (Drawable d : drawList)
             d.init(gl);
 
         player.setTexture(textureMap.get("player"), true);
         background.setTexture(textureMap.get("background"), false);
+        testBlock.getDrawRect().setTexture(textureMap.get("solid"), false);
 
         logger.log(this, LogSeverity.INFO, "Initialising...");
-
-        world.addBody(player.getPhysicsBody());
-        world.setGravity(World.EARTH_GRAVITY.multiply(-1));
 
     }
 
@@ -222,8 +214,6 @@ public class Main implements KeyListener, GLDebugListener, GLEventListener {
         for (Drawable d : drawList)
             d.update(gl);
 
-        world.step(2);
-
     }
 
     private void render(GL4 gl) {
@@ -235,6 +225,7 @@ public class Main implements KeyListener, GLDebugListener, GLEventListener {
 
         background.loadMatrixStack(stack.cloneStack());
         player.loadMatrixStack(stack.cloneStack());
+        testBlock.getDrawRect().loadMatrixStack(stack.cloneStack());
 
         for (Drawable d : drawList)
             d.draw(gl);
@@ -252,10 +243,9 @@ public class Main implements KeyListener, GLDebugListener, GLEventListener {
                 window.setFullscreen(!window.isFullscreen());
                 break;
             case KeyEvent.VK_SPACE:
-                player.getPhysicsBody().applyImpulse(new Vector2(0, -500));
                 break;
             case KeyEvent.VK_D:
-                player.getPhysicsBody().applyForce(new Vector2(2000, 0));
+              break;
             default:
                 break;
         }

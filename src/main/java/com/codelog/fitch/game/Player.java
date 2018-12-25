@@ -24,14 +24,7 @@ import com.codelog.fitch.Main;
 import com.codelog.fitch.graphics.*;
 import com.jogamp.opengl.GL4;
 import com.jogamp.opengl.math.Matrix4;
-import glm_.vec2.Vec2;
-import org.dyn4j.dynamics.Body;
-import org.dyn4j.dynamics.BodyFixture;
-import org.dyn4j.dynamics.World;
-import org.dyn4j.geometry.Mass;
-import org.dyn4j.geometry.MassType;
-import org.dyn4j.geometry.Shape;
-import org.dyn4j.geometry.Vector2;
+import com.codelog.fitch.math.Vector2;
 
 import java.io.IOException;
 
@@ -40,7 +33,7 @@ import static com.codelog.fitch.graphics.Texture2D.loadTexture;
 @SuppressWarnings({"unused", "FieldCanBeLocal"})
 public class Player implements Drawable {
 
-    private Vec2 pos;
+    private Vector2 pos;
     private float width;
     private float height;
     private boolean isStanding = false;
@@ -48,27 +41,25 @@ public class Player implements Drawable {
     private float drawDepth = 0f;
     private Texture2D texture;
 
-    private Body physicsBody;
-
     private ShaderProgram shaderProgram;
     private VertexArrayObject vao;
     private VertexBufferObject vbo;
     private MatrixStack<Matrix4> matrixStack;
 
-    public Player(Vec2 pos, float width, float height) {
+    public Player(Vector2 pos, float width, float height) {
         this.pos = pos;
         this.width = width;
         this.height = height;
     }
 
     public Player(Rectangle rect) {
-        new Player(new Vec2(rect.getX(), rect.getY()), rect.getWidth(), rect.getHeight());
+        new Player(new Vector2(rect.getX(), rect.getY()), rect.getWidth(), rect.getHeight());
     }
 
     private void setupBuffers(GL4 gl) {
 
-        float x = pos.getX();
-        float y = pos.getY();
+        float x = (float)pos.x;
+        float y = (float)pos.y;
 
         float[] vertices = {
                 x,          y,            drawDepth, 0, 0,
@@ -87,9 +78,6 @@ public class Player implements Drawable {
 
         Matrix4 ident = new Matrix4();
         matrixStack.push(ident);
-
-        Vector2 deltaPos = this.physicsBody.getChangeInPosition();
-        this.pos = this.pos.plus(new Vec2(deltaPos.x * 10, deltaPos.y * (9f / 16 * 10f)));
 
     }
 
@@ -120,15 +108,6 @@ public class Player implements Drawable {
             Main.getLogger().log(this, e);
         }
 
-        physicsBody = new Body();
-        physicsBody.addFixture(new org.dyn4j.geometry.Rectangle(width, height), 0.1f);
-        physicsBody.translateToOrigin();
-        physicsBody.translate(new Vector2(this.pos.getX(), this.pos.getY()));
-        physicsBody.setMass(new Mass(new Vector2(0, 0), 20, 1.0));
-        physicsBody.setGravityScale(1);
-        physicsBody.setActive(true);
-        physicsBody.setAngularDamping(Double.MAX_VALUE);
-
     }
 
     @Override
@@ -157,8 +136,8 @@ public class Player implements Drawable {
 
     }
 
-    public Vec2 getPos() { return pos; }
-    public void setPos(Vec2 pos) { this.pos = pos; }
+    public Vector2 getPos() { return pos; }
+    public void setPos(Vector2 pos) { this.pos = pos; }
 
     public MatrixStack<Matrix4> getMatrixStack() { return matrixStack; }
     public void loadMatrixStack(MatrixStack<Matrix4> _mstack) { matrixStack = _mstack; }
@@ -171,10 +150,6 @@ public class Player implements Drawable {
 
     public float getDrawDepth() { return drawDepth; }
     public void setDrawDepth(float _dd) { drawDepth = _dd; }
-
-    public Body getPhysicsBody() {
-        return physicsBody;
-    }
 
     public void setTexture(Texture2D texture, boolean changeDims) {
         this.texture = texture;
