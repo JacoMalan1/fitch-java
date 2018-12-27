@@ -22,6 +22,8 @@ package com.codelog.fitch.game;
 
 import com.codelog.fitch.Main;
 import com.codelog.fitch.graphics.*;
+import com.codelog.syphen.Body;
+import com.codelog.syphen.math.Vec2;
 import com.jogamp.opengl.GL4;
 import com.jogamp.opengl.math.Matrix4;
 import com.codelog.fitch.math.Vector2;
@@ -40,6 +42,7 @@ public class Player implements Drawable {
     private boolean isRunning = false;
     private float drawDepth = 0f;
     private Texture2D texture;
+    private Body physicsBody;
 
     private ShaderProgram shaderProgram;
     private VertexArrayObject vao;
@@ -108,6 +111,8 @@ public class Player implements Drawable {
             Main.getLogger().log(this, e);
         }
 
+        this.physicsBody = new Body(new Vec2(this.pos.x, this.pos.y), 1.0, new com.codelog.syphen.shapes.Rectangle(new Vec2(this.pos.x, this.pos.y), this.width, this.height));
+
     }
 
     @Override
@@ -147,6 +152,8 @@ public class Player implements Drawable {
 
     public boolean getRunning() { return isRunning; }
     public boolean getStanding() { return isStanding; }
+
+    public Body getPhysicsBody() { return physicsBody; }
 
     public float getDrawDepth() { return drawDepth; }
     public void setDrawDepth(float _dd) { drawDepth = _dd; }

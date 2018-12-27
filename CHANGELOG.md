@@ -19,3 +19,7 @@
 * Added Vector2 class.
 * Added Block class.
 * Optimized Player class.
+
+## v0.1.1 -- 27-12-2018
+
+* Added some physics stuff.

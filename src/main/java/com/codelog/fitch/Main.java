@@ -25,6 +25,8 @@ import com.codelog.fitch.graphics.*;
 import com.codelog.fitch.graphics.Rectangle;
 import com.codelog.fitch.math.Vector2;
 import com.codelog.fitch.game.Block;
+import com.codelog.syphen.World;
+import com.codelog.syphen.math.Vec2;
 import com.jogamp.newt.event.KeyEvent;
 import com.jogamp.newt.event.KeyListener;
 import com.jogamp.newt.event.WindowAdapter;
@@ -33,7 +35,6 @@ import com.jogamp.newt.opengl.GLWindow;
 import com.jogamp.opengl.*;
 import com.jogamp.opengl.math.Matrix4;
 import com.jogamp.opengl.util.Animator;
-import glm_.vec2.Vec2;
 
 import java.awt.*;
 import java.io.IOException;
@@ -42,6 +43,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+@SuppressWarnings({ "FieldCanBeLocal" })
 public class Main implements KeyListener, GLDebugListener, GLEventListener {
 
     private GLWindow window;
@@ -51,6 +53,7 @@ public class Main implements KeyListener, GLDebugListener, GLEventListener {
     private static Logger logger;
     private static Rectangle background;
     private Block testBlock;
+    private World world;
 
     private Map<String, Texture2D> textureMap;
 
@@ -132,6 +135,8 @@ public class Main implements KeyListener, GLDebugListener, GLEventListener {
             logger.log(this, e);
         }
 
+        world = new World(new Vec2(0, 1), 0.9);
+
         background = new Rectangle(0, 0, window.getWidth(), window.getHeight());
         background.setDrawDepth(0.9f);
         background.setUseTexture(true);
@@ -152,6 +157,8 @@ public class Main implements KeyListener, GLDebugListener, GLEventListener {
         player.setTexture(textureMap.get("player"), true);
         background.setTexture(textureMap.get("background"), false);
         testBlock.getDrawRect().setTexture(textureMap.get("solid"), false);
+
+        world.addBody(player.getPhysicsBody());
 
         logger.log(this, LogSeverity.INFO, "Initialising...");
 
@@ -213,6 +220,8 @@ public class Main implements KeyListener, GLDebugListener, GLEventListener {
 
         for (Drawable d : drawList)
             d.update(gl);
+
+        world.step(1);
 
     }
 
