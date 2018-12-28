@@ -237,15 +237,6 @@ public class Main extends JFrame implements KeyListener, GLEventListener {
     @Override
     public void keyTyped(KeyEvent keyEvent) {
 
-        switch (keyEvent.getKeyCode()) {
-            case KeyEvent.VK_D:
-                player.getPhysicsBody().applyForce(new Vec2(3, 0));
-                break;
-
-            default:
-                break;
-        }
-
     }
 
     @Override
@@ -258,6 +249,9 @@ public class Main extends JFrame implements KeyListener, GLEventListener {
             case KeyEvent.VK_F11:
                 break;
             case KeyEvent.VK_SPACE:
+                break;
+            case KeyEvent.VK_D:
+                player.getPhysicsBody().applyForce(new Vec2(3, 0));
                 break;
             default:
                 break;
