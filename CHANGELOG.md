@@ -23,3 +23,7 @@
 ## v0.1.1 -- 27-12-2018
 
 * Added some physics stuff.
+
+## v0.1.2 -- 27-12-2018
+
+* Modified the physics implementation.

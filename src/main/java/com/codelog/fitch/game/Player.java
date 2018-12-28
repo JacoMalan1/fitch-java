@@ -77,10 +77,13 @@ public class Player implements Drawable {
 
     @Override
     public void update(GL4 gl) {
+
         setupBuffers(gl);
 
         Matrix4 ident = new Matrix4();
         matrixStack.push(ident);
+        var newPos = physicsBody.getPos();
+        this.pos = new Vector2(newPos.x, newPos.y);
 
     }
 
@@ -116,6 +119,7 @@ public class Player implements Drawable {
     }
 
     @Override
+    @SuppressWarnings("Duplicates")
     public void draw(GL4 gl) {
 
         vao.bind(gl);
