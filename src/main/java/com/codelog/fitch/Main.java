@@ -33,6 +33,7 @@ import com.jogamp.opengl.awt.GLCanvas;
 import com.jogamp.opengl.math.Matrix4;
 import com.jogamp.opengl.util.Animator;
 
+import javax.annotation.Nullable;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.KeyEvent;
@@ -50,15 +51,18 @@ public class Main extends JFrame implements KeyListener, GLEventListener {
     // Constants
     public static final Vec2 GRAVITY = new Vec2(0, 0.8);
 
-    // Variables
+    // Instance variables
     private GLCanvas canvas;
     private Animator animator;
     private Player player;
     private List<Drawable> drawList;
-    private static Logger logger;
-    private static Rectangle background;
     private Block testBlock;
     private World world;
+
+    // Static variables
+    private static boolean write_log = true;
+    private static Logger logger;
+    private static Rectangle background;
 
     private Map<String, Texture2D> textureMap;
 
@@ -68,11 +72,40 @@ public class Main extends JFrame implements KeyListener, GLEventListener {
 
     public static Logger getLogger() { return logger; }
 
-    public Main() { super("Fitch"); }
+    public Main() throws IllegalArgumentException {
+        super("Fitch");
+    }
 
-    public static void main(String[] args) {
+    public static void sendHelp() {
+
+        StringBuilder sb = new StringBuilder();
+
+        sb.append("Usage: fitch <arguments>\n\n");
+        sb.append("\t--no-log\tDo not write log info to a file.\n");
+
+    }
+
+    public static void main(@Nullable String[] args) throws IllegalArgumentException {
+
+        if (args != null) {
+            for (int i = 0; i < args.length; i++) {
+                switch (args[i]) {
+
+                    case "--no-log":
+                        write_log = false;
+                        break;
+
+                    default:
+                        sendHelp();
+                        break;
+
+                } // endswitch
+            } // endfor
+        } // endif
+
         logger = new Logger();
         new Main().setup();
+
     }
     private void setup() {
 
@@ -98,7 +131,8 @@ public class Main extends JFrame implements KeyListener, GLEventListener {
             @Override
             public void windowClosing(WindowEvent e) {
                 animator.stop();
-                logger.write();
+                if (write_log)
+                    logger.write();
             }
         });
 
@@ -236,11 +270,13 @@ public class Main extends JFrame implements KeyListener, GLEventListener {
 
     @Override
     public void keyTyped(KeyEvent keyEvent) {
-
+        System.out.println(keyEvent.getKeyChar());
     }
 
     @Override
     public void keyPressed(KeyEvent keyEvent) {
+
+        System.out.println("Press");
 
         switch (keyEvent.getKeyCode()) {
             case KeyEvent.VK_ESCAPE:
@@ -261,6 +297,6 @@ public class Main extends JFrame implements KeyListener, GLEventListener {
 
     @Override
     public void keyReleased(KeyEvent keyEvent) {
-
+        System.out.println("Release");
     }
 }
