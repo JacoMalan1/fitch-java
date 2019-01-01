@@ -21,6 +21,7 @@ A platformer game written using OpenGL.
 package com.codelog.fitch.graphics;
 
 import com.codelog.fitch.Main;
+import com.codelog.fitch.math.Vector2;
 import com.jogamp.opengl.GL4;
 import com.jogamp.opengl.math.Matrix4;
 import glm_.vec2.Vec2;
@@ -159,6 +160,7 @@ public class Rectangle implements Drawable {
         }
     }
 
+    public void setPos(Vector2 pos) { this.pos = new Vec2(pos.x, pos.y); }
     public void setDrawDepth(float drawDepth) { this.drawDepth = drawDepth; }
     public void setUseTexture(boolean useTexture) { this.useTexture = useTexture; }
 

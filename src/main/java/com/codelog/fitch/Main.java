@@ -20,12 +20,12 @@ A platformer game written using OpenGL.
 
 package com.codelog.fitch;
 
-import com.codelog.fitch.game.Player;
+import com.codelog.fitch.game.*;
 import com.codelog.fitch.graphics.*;
 import com.codelog.fitch.graphics.Rectangle;
 import com.codelog.fitch.math.Vector2;
-import com.codelog.fitch.game.Block;
 import com.codelog.syphen.World;
+import com.codelog.syphen.WorldBuilder;
 import com.codelog.syphen.math.Vec2;
 import com.jogamp.newt.opengl.GLWindow;
 import com.jogamp.opengl.*;
@@ -56,17 +56,17 @@ public class Main extends JFrame implements KeyListener, GLEventListener {
     private Animator animator;
     private Player player;
     private List<Drawable> drawList;
-    private Block testBlock;
     private World world;
 
     // Static variables
     private static boolean write_log = true;
     private static Logger logger;
     private static Rectangle background;
+    private static Level level;
 
-    private Map<String, Texture2D> textureMap;
+    private static Map<String, Texture2D> textureMap;
 
-    private String[] propsToLog = new String[] {
+    private static String[] propsToLog = new String[] {
             "os.name", "os.arch", "os.version", "java.vendor", "java.vm.name", "java.version"
     };
 
@@ -78,6 +78,7 @@ public class Main extends JFrame implements KeyListener, GLEventListener {
 
     public static void sendHelp() {
 
+        // Shows commandline help message.
         StringBuilder sb = new StringBuilder();
 
         sb.append("Usage: fitch <arguments>\n\n");
@@ -87,6 +88,7 @@ public class Main extends JFrame implements KeyListener, GLEventListener {
 
     public static void main(@Nullable String[] args) throws IllegalArgumentException {
 
+        // Parse commandline arguments.
         if (args != null) {
             for (int i = 0; i < args.length; i++) {
                 switch (args[i]) {
@@ -103,12 +105,14 @@ public class Main extends JFrame implements KeyListener, GLEventListener {
             } // endfor
         } // endif
 
+        // Start game.
         logger = new Logger();
         new Main().setup();
 
     }
     private void setup() {
 
+        // Setup GL Canvas and capabilities.
         GLProfile glProfile = GLProfile.get(GLProfile.GL4);
         GLCapabilities glCap = new GLCapabilities(glProfile);
         glCap.setDepthBits(16);
@@ -149,17 +153,20 @@ public class Main extends JFrame implements KeyListener, GLEventListener {
 
         gl.glDebugMessageControl(gl.GL_DONT_CARE, gl.GL_DONT_CARE, gl.GL_DONT_CARE, 0, null, 0, true);
 
+        // Enable OpenGL features
         gl.glEnable(gl.GL_DEPTH_TEST);
         gl.glEnable(gl.GL_DEBUG_OUTPUT_SYNCHRONOUS);
         gl.glEnable(gl.GL_BLEND);
         gl.glEnable(gl.GL_TEXTURE_2D);
 
+        // Set GL functions
         gl.glBlendFunc(gl.GL_SRC_ALPHA, gl.GL_ONE_MINUS_SRC_ALPHA);
         gl.glDepthFunc(gl.GL_LEQUAL);
 
         drawList = new ArrayList<>();
         textureMap = new HashMap<>();
 
+        // Initialize textures
         try {
             textureMap.put("player", Texture2D.loadTexture(gl, "player.png"));
             textureMap.put("background", Texture2D.loadTexture(gl, "background.png"));
@@ -168,31 +175,58 @@ public class Main extends JFrame implements KeyListener, GLEventListener {
             logger.log(this, e);
         }
 
-        world = new World(GRAVITY, 1 / 0.95);
+        // Build world
+        WorldBuilder wb = new WorldBuilder();
+        wb.setGravity(new Vec2(0, 1));
+        wb.setAirResistance(1.1);
+        wb.setTerminalVelocity(10);
+        world = wb.toWorld();
 
-        background = new Rectangle(0, 0, canvas.getWidth(), canvas.getHeight());
+        // Setup background
+        background = new Rectangle(-50, -50, canvas.getWidth() + 50, canvas.getHeight() + 50);
         background.setDrawDepth(0.9f);
         background.setUseTexture(true);
         drawList.add(background);
 
-        testBlock = new Block(0, 5);
-        testBlock.getDrawRect().setDrawDepth(0.5f);
-        testBlock.getDrawRect().setUseTexture(true);
-        drawList.add(testBlock.getDrawRect());
+        // TODO: Implement level loading.
 
-        player = new Player(new Vector2(0, 0), 50, 100);
+        try {
+            level = Tools.loadLevel("content/level1.fl");
+        } catch (IOException | LevelParseException e) {
+            // We can't recover from level-load failure, so exit.
+            logger.log(this, e);
+            this.dispatchEvent(new WindowEvent(this, WindowEvent.WINDOW_CLOSING));
+        }
+
+        for (Block b : level.getBlocks()) {
+            b.getDrawRect().setUseTexture(true);
+            b.getDrawRect().setDrawDepth(0.2f);
+            drawList.add(b.getDrawRect());
+        }
+
+        // Setup player
+        var pwidth = 50;
+        var pheight = 100;
+        var pos = level.getStartPos().sub(new Vector2(0, pheight * 2));
+        player = new Player(pos, pwidth, pheight);
         player.setDrawDepth(0.0f);
         drawList.add(player);
 
+        // Initialize all the drawables
         for (Drawable d : drawList)
             d.init(gl);
 
+        // Set initial textures
         player.setTexture(textureMap.get("player"), true);
         background.setTexture(textureMap.get("background"), false);
-        testBlock.getDrawRect().setTexture(textureMap.get("solid"), false);
 
+        for (Block b : level.getBlocks()) {
+            b.getDrawRect().setTexture(textureMap.get("solid"), false);
+            world.addBody(b.getBody());
+        }
+
+        // Add every physics body
         world.addBody(player.getPhysicsBody());
-        world.addBody(testBlock.getBody());
 
         logger.log(this, LogSeverity.INFO, "Initialising...");
 
@@ -218,21 +252,25 @@ public class Main extends JFrame implements KeyListener, GLEventListener {
 
     @Override
     public void dispose(GLAutoDrawable drawable) {
-
+        // Nothing to dispose of :)
     }
 
     @Override
-    public void display(GLAutoDrawable drawable) {
+    public void display(GLAutoDrawable drawable) { // Called on render
 
         var gl = drawable.getGL().getGL4();
 
+        // Pre-update
         float[] cfb = Colour.CornFlowerBlue.getFloats();
         gl.glClearColor(cfb[0], cfb[1], cfb[2], cfb[3]);
         gl.glClearDepth(1f);
         gl.glClear(gl.GL_COLOR_BUFFER_BIT | gl.GL_DEPTH_BUFFER_BIT);
 
-        update(gl);
-        render(gl);
+        update(gl); // Object updates
+        render(gl); // Render everything
+
+        // Post-render
+        // TODO: Add post-render cleanup.
 
         canvas.swapBuffers();
 
@@ -240,6 +278,12 @@ public class Main extends JFrame implements KeyListener, GLEventListener {
 
     @Override
     public void reshape(GLAutoDrawable drawable, int x, int y, int width, int height) {
+
+        var gl = drawable.getGL().getGL4();
+
+        // Resize the viewport to correspond
+        // to the new canvas size.
+        gl.glViewport(x, y, width, height);
 
     }
 
@@ -254,14 +298,28 @@ public class Main extends JFrame implements KeyListener, GLEventListener {
 
     private void render(GL4 gl) {
 
+        // TODO: Optimize rendering.
+
         Matrix4 mat = new Matrix4();
         mat.makeOrtho(0, canvas.getWidth(), canvas.getHeight(), 0, 0f, 1f);
+
+        Vector2 pos = player.getPos();
+        float translateX = -((float)pos.x - canvas.getWidth() / 2) - player.getWidth() * 2;
+        float translateY = -((float)pos.y - canvas.getHeight() / 2);
+
+        mat.translate(translateX, translateY, 0f);
+
         MatrixStack<Matrix4> stack = new MatrixStack<>();
         stack.push(mat);
 
+        background.setPos(new Vector2(-translateX, -translateY));
+
         background.loadMatrixStack(stack.cloneStack());
         player.loadMatrixStack(stack.cloneStack());
-        testBlock.getDrawRect().loadMatrixStack(stack.cloneStack());
+
+        for (Block b : level.getBlocks()) {
+            b.getDrawRect().loadMatrixStack(stack);
+        }
 
         for (Drawable d : drawList)
             d.draw(gl);
@@ -270,13 +328,12 @@ public class Main extends JFrame implements KeyListener, GLEventListener {
 
     @Override
     public void keyTyped(KeyEvent keyEvent) {
-        System.out.println(keyEvent.getKeyChar());
     }
 
     @Override
-    public void keyPressed(KeyEvent keyEvent) {
+    public synchronized void keyPressed(KeyEvent keyEvent) {
 
-        System.out.println("Press");
+        // TODO: Optimize keyboard handling.
 
         switch (keyEvent.getKeyCode()) {
             case KeyEvent.VK_ESCAPE:
@@ -289,6 +346,9 @@ public class Main extends JFrame implements KeyListener, GLEventListener {
             case KeyEvent.VK_D:
                 player.getPhysicsBody().applyForce(new Vec2(3, 0));
                 break;
+            case KeyEvent.VK_A:
+                player.getPhysicsBody().applyForce(new Vec2(-3, 0));
+                break;
             default:
                 break;
         }
@@ -297,6 +357,5 @@ public class Main extends JFrame implements KeyListener, GLEventListener {
 
     @Override
     public void keyReleased(KeyEvent keyEvent) {
-        System.out.println("Release");
     }
 }

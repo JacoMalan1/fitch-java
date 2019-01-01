@@ -20,9 +20,17 @@ A platformer game written using OpenGL.
 
 package com.codelog.fitch;
 
+import com.codelog.fitch.game.Block;
+import com.codelog.fitch.game.BlockType;
+import com.codelog.fitch.game.Level;
+import com.codelog.fitch.game.LevelParseException;
+import com.codelog.fitch.math.Vector2;
+
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
 public class Tools {
 
@@ -31,18 +39,62 @@ public class Tools {
         FileReader fr = new FileReader(filePath);
         BufferedReader reader = new BufferedReader(fr);
 
-        String contents = "";
+        StringBuilder sb = new StringBuilder();
         String line;
 
         while ((line = reader.readLine()) != null) {
 
-            contents += line + "\n";
+            sb.append(line);
+            sb.append("\n");
 
         }
 
         reader.close();
 
-        return contents;
+        return sb.toString();
+
+    }
+
+    @SuppressWarnings("WeakerAccess")
+    public static Level loadLevel(String filePath) throws IOException, LevelParseException {
+
+        String[] lines = loadFile(filePath).split("\n");
+        List<Block> blocks = new ArrayList<>();
+        Vector2 startPos = new Vector2(0, 0);
+
+        for (String line : lines) {
+
+            String[] fields = line.split(",");
+            if (fields[0].equalsIgnoreCase(""))
+                throw new LevelParseException("No such block type.");
+
+            BlockType type;
+
+            switch (fields[0]) {
+                case "solid":
+                    type = BlockType.Solid;
+                    break;
+                case "start":
+                    type = BlockType.Start;
+                    break;
+                default:
+                    type = BlockType.Solid;
+                    break;
+            }
+
+            int x = Integer.parseInt(fields[1]);
+            int y = Integer.parseInt(fields[2]);
+
+            if (type == BlockType.Start) {
+                startPos = new Vector2(x, y);
+                continue;
+            }
+
+            blocks.add(new Block(x, y, type));
+
+        }
+
+        return new Level(startPos, blocks);
 
     }
 

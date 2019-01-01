@@ -27,3 +27,10 @@
 ## v0.1.2 -- 27-12-2018
 
 * Modified the physics implementation.
+
+## v0.1.3 -- 01-01-2019
+
+* Happy New Year!! :)
+* Fixed keyboard handling.
+* Added some helpful comments in "Main.java".
+* Cleaned up "Main.java"

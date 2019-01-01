@@ -25,7 +25,12 @@ public class Logger {
         String time = getTimeString(LocalTime.now());
         String line = String.format("[%s] %s: %s", senderName, time, message);
 
-        System.out.println(line);
+        if (severity == LogSeverity.ERROR) {
+            System.err.println(line);
+        } else {
+            System.out.println(line);
+        }
+
         messageList.add(line);
 
     }
