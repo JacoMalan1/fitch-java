@@ -34,3 +34,8 @@
 * Fixed keyboard handling.
 * Added some helpful comments in "Main.java".
 * Cleaned up "Main.java"
+
+## v0.1.4 -- 01-01-2019
+
+* Added Vector4 class.
+* Converted Colour class to use Vector4.

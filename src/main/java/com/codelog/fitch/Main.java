@@ -20,14 +20,15 @@ A platformer game written using OpenGL.
 
 package com.codelog.fitch;
 
-import com.codelog.fitch.game.*;
+import com.codelog.fitch.game.Block;
+import com.codelog.fitch.game.Level;
+import com.codelog.fitch.game.LevelParseException;
+import com.codelog.fitch.game.Player;
 import com.codelog.fitch.graphics.*;
-import com.codelog.fitch.graphics.Rectangle;
 import com.codelog.fitch.math.Vector2;
 import com.codelog.syphen.World;
 import com.codelog.syphen.WorldBuilder;
 import com.codelog.syphen.math.Vec2;
-import com.jogamp.newt.opengl.GLWindow;
 import com.jogamp.opengl.*;
 import com.jogamp.opengl.awt.GLCanvas;
 import com.jogamp.opengl.math.Matrix4;
@@ -35,7 +36,6 @@ import com.jogamp.opengl.util.Animator;
 
 import javax.annotation.Nullable;
 import javax.swing.*;
-import java.awt.*;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.awt.event.WindowAdapter;
@@ -72,11 +72,11 @@ public class Main extends JFrame implements KeyListener, GLEventListener {
 
     public static Logger getLogger() { return logger; }
 
-    public Main() throws IllegalArgumentException {
+    private Main() throws IllegalArgumentException {
         super("Fitch");
     }
 
-    public static void sendHelp() {
+    private static void sendHelp() {
 
         // Shows commandline help message.
         StringBuilder sb = new StringBuilder();

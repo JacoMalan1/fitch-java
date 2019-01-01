@@ -49,7 +49,6 @@ dependencies {
 
     // This dependency is found on compile classpath of this component and consumers.
     implementation 'com.google.guava:guava:26.0-jre'
-    implementation 'com.github.kotlin-graphics:glm:v0.9.9.0-build-12'
 
     // Compile-time libraries
     compile "org.jogamp.gluegen:gluegen-rt:2.3.1"

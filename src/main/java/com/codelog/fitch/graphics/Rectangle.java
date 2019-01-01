@@ -24,13 +24,12 @@ import com.codelog.fitch.Main;
 import com.codelog.fitch.math.Vector2;
 import com.jogamp.opengl.GL4;
 import com.jogamp.opengl.math.Matrix4;
-import glm_.vec2.Vec2;
 
 import java.io.IOException;
 
 public class Rectangle implements Drawable {
 
-    private Vec2 pos;
+    private Vector2 pos;
     private float height;
     private float width;
 
@@ -44,9 +43,9 @@ public class Rectangle implements Drawable {
     private boolean useTexture = false;
     private float drawDepth = 0.0f;
 
-    public Rectangle(float x, float y, float width, float height) {
+    public Rectangle(double x, double y, float width, float height) {
 
-        this.pos = new Vec2(x, y);
+        this.pos = new Vector2(x, y);
         this.height = height;
         this.width = width;
 
@@ -54,8 +53,8 @@ public class Rectangle implements Drawable {
 
     public float getWidth() { return width; }
     public float getHeight() { return height; }
-    public float getX() { return pos.getX(); }
-    public float getY() { return pos.getY(); }
+    public double getX() { return pos.x; }
+    public double getY() { return pos.y; }
 
     @Override
     public void init(GL4 gl) {
@@ -87,8 +86,8 @@ public class Rectangle implements Drawable {
         vao.bind(gl);
         vbo.bind(gl);
 
-        float x = pos.getX();
-        float y = pos.getY();
+        float x = (float)pos.x;
+        float y = (float)pos.y;
 
         float[] vertices;
         if (!useTexture) {
@@ -160,7 +159,7 @@ public class Rectangle implements Drawable {
         }
     }
 
-    public void setPos(Vector2 pos) { this.pos = new Vec2(pos.x, pos.y); }
+    public void setPos(Vector2 pos) { this.pos = new Vector2(pos.x, pos.y); }
     public void setDrawDepth(float drawDepth) { this.drawDepth = drawDepth; }
     public void setUseTexture(boolean useTexture) { this.useTexture = useTexture; }
 
