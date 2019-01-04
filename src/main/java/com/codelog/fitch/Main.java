@@ -24,39 +24,43 @@ import com.codelog.fitch.game.Block;
 import com.codelog.fitch.game.Level;
 import com.codelog.fitch.game.LevelParseException;
 import com.codelog.fitch.game.Player;
+import com.codelog.fitch.graphics.Rectangle;
 import com.codelog.fitch.graphics.*;
 import com.codelog.fitch.math.Vector2;
 import com.codelog.syphen.World;
 import com.codelog.syphen.WorldBuilder;
 import com.codelog.syphen.math.Vec2;
+import com.jogamp.newt.event.KeyEvent;
+import com.jogamp.newt.event.KeyListener;
+import com.jogamp.newt.event.WindowAdapter;
+import com.jogamp.newt.event.WindowEvent;
+import com.jogamp.newt.opengl.GLWindow;
 import com.jogamp.opengl.*;
-import com.jogamp.opengl.awt.GLCanvas;
 import com.jogamp.opengl.math.Matrix4;
 import com.jogamp.opengl.util.Animator;
 
 import javax.annotation.Nullable;
-import javax.swing.*;
-import java.awt.event.KeyEvent;
-import java.awt.event.KeyListener;
-import java.awt.event.WindowAdapter;
-import java.awt.event.WindowEvent;
+import java.awt.*;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class Main extends JFrame implements KeyListener, GLEventListener {
+public class Main implements KeyListener, GLEventListener {
 
     // Constants
-    public static final Vec2 GRAVITY = new Vec2(0, 0.8);
+    private static final Vec2 GRAVITY = new Vec2(0, 0.8);
 
     // Instance variables
-    private GLCanvas canvas;
+    private GLWindow window;
     private Animator animator;
     private Player player;
     private List<Drawable> drawList;
     private World world;
+    private Map<String, Texture2D> textureMap;
+    private long lastTime;
+    private long minPeriod = (long)(1f / 60f * 100 * 10000000f); // Minimum time in nanoseconds between updates.
 
     // Static variables
     private static boolean write_log = true;
@@ -64,17 +68,11 @@ public class Main extends JFrame implements KeyListener, GLEventListener {
     private static Rectangle background;
     private static Level level;
 
-    private static Map<String, Texture2D> textureMap;
-
     private static String[] propsToLog = new String[] {
             "os.name", "os.arch", "os.version", "java.vendor", "java.vm.name", "java.version"
     };
 
     public static Logger getLogger() { return logger; }
-
-    private Main() throws IllegalArgumentException {
-        super("Fitch");
-    }
 
     private static void sendHelp() {
 
@@ -117,23 +115,26 @@ public class Main extends JFrame implements KeyListener, GLEventListener {
         GLCapabilities glCap = new GLCapabilities(glProfile);
         glCap.setDepthBits(16);
 
-        canvas = new GLCanvas(glCap);
-        animator = new Animator(canvas);
+        window = GLWindow.create(glCap);
+        animator = new Animator(window);
 
-        add(canvas);
-        canvas.addGLEventListener(this);
-        setSize(800, 600);
-        setVisible(true);
-        addKeyListener(this);
-        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setFocusable(true);
+        window.addGLEventListener(this);
 
-        canvas.setAutoSwapBufferMode(false);
+        //int width = Toolkit.getDefaultToolkit().getScreenSize().width;
+        //int height = Toolkit.getDefaultToolkit().getScreenSize().height;
+        //window.setSize(width, height);
+        window.setSize(800, 600);
+
+        window.setVisible(true);
+        window.addKeyListener(this);
+        window.setDefaultCloseOperation(GLWindow.WindowClosingMode.DISPOSE_ON_CLOSE);
+
+        window.setAutoSwapBufferMode(false);
         animator.start();
 
-        addWindowListener(new WindowAdapter() {
+        window.addWindowListener(new WindowAdapter() {
             @Override
-            public void windowClosing(WindowEvent e) {
+            public void windowDestroyNotify(com.jogamp.newt.event.WindowEvent e) {
                 animator.stop();
                 if (write_log)
                     logger.write();
@@ -149,13 +150,12 @@ public class Main extends JFrame implements KeyListener, GLEventListener {
 
         var gl = drawable.getGL().getGL4();
 
-        logger.log(this, LogSeverity.INFO, String.format("OpenGL version: %s\n", canvas.getContext().getGLVersion()));
+        logger.log(this, LogSeverity.INFO, String.format("OpenGL version: %s\n", window.getContext().getGLVersion()));
 
         gl.glDebugMessageControl(gl.GL_DONT_CARE, gl.GL_DONT_CARE, gl.GL_DONT_CARE, 0, null, 0, true);
 
         // Enable OpenGL features
         gl.glEnable(gl.GL_DEPTH_TEST);
-        gl.glEnable(gl.GL_DEBUG_OUTPUT_SYNCHRONOUS);
         gl.glEnable(gl.GL_BLEND);
         gl.glEnable(gl.GL_TEXTURE_2D);
 
@@ -177,13 +177,13 @@ public class Main extends JFrame implements KeyListener, GLEventListener {
 
         // Build world
         WorldBuilder wb = new WorldBuilder();
-        wb.setGravity(new Vec2(0, 1));
+        wb.setGravity(GRAVITY);
         wb.setAirResistance(1.1);
         wb.setTerminalVelocity(10);
         world = wb.toWorld();
 
         // Setup background
-        background = new Rectangle(-50, -50, canvas.getWidth() + 50, canvas.getHeight() + 50);
+        background = new Rectangle(-200, -200, window.getWidth() + 200, window.getHeight() + 200);
         background.setDrawDepth(0.9f);
         background.setUseTexture(true);
         drawList.add(background);
@@ -195,7 +195,7 @@ public class Main extends JFrame implements KeyListener, GLEventListener {
         } catch (IOException | LevelParseException e) {
             // We can't recover from level-load failure, so exit.
             logger.log(this, e);
-            this.dispatchEvent(new WindowEvent(this, WindowEvent.WINDOW_CLOSING));
+            window.sendWindowEvent(WindowEvent.EVENT_WINDOW_DESTROY_NOTIFY);
         }
 
         for (Block b : level.getBlocks()) {
@@ -229,6 +229,9 @@ public class Main extends JFrame implements KeyListener, GLEventListener {
         world.addBody(player.getPhysicsBody());
 
         logger.log(this, LogSeverity.INFO, "Initialising...");
+
+        System.nanoTime();
+        update(gl);
 
     }
 
@@ -266,13 +269,20 @@ public class Main extends JFrame implements KeyListener, GLEventListener {
         gl.glClearDepth(1f);
         gl.glClear(gl.GL_COLOR_BUFFER_BIT | gl.GL_DEPTH_BUFFER_BIT);
 
-        update(gl); // Object updates
+        long time = System.nanoTime();
+        long deltaTime = time - lastTime;
+
+        if (deltaTime >= minPeriod) {
+            update(gl);
+            lastTime = time;
+        }
+
         render(gl); // Render everything
 
         // Post-render
         // TODO: Add post-render cleanup.
 
-        canvas.swapBuffers();
+        window.swapBuffers();
 
     }
 
@@ -301,11 +311,11 @@ public class Main extends JFrame implements KeyListener, GLEventListener {
         // TODO: Optimize rendering.
 
         Matrix4 mat = new Matrix4();
-        mat.makeOrtho(0, canvas.getWidth(), canvas.getHeight(), 0, 0f, 1f);
+        mat.makeOrtho(0, window.getWidth(), window.getHeight(), 0, 0f, 1f);
 
         Vector2 pos = player.getPos();
-        float translateX = -((float)pos.x - canvas.getWidth() / 2) - player.getWidth() * 2;
-        float translateY = -((float)pos.y - canvas.getHeight() / 2);
+        float translateX = -((float)pos.x - (float)window.getWidth() / 2f) - player.getWidth() * 2f;
+        float translateY = -((float)pos.y - (float)window.getHeight() / 2f);
 
         mat.translate(translateX, translateY, 0f);
 
@@ -327,17 +337,13 @@ public class Main extends JFrame implements KeyListener, GLEventListener {
     }
 
     @Override
-    public void keyTyped(KeyEvent keyEvent) {
-    }
-
-    @Override
-    public synchronized void keyPressed(KeyEvent keyEvent) {
+    public synchronized void keyPressed(KeyEvent e) {
 
         // TODO: Optimize keyboard handling.
 
-        switch (keyEvent.getKeyCode()) {
+        switch (e.getKeyCode()) {
             case KeyEvent.VK_ESCAPE:
-                dispatchEvent(new WindowEvent(this, WindowEvent.WINDOW_CLOSING));
+                window.sendWindowEvent(WindowEvent.EVENT_WINDOW_DESTROY_NOTIFY);
                 break;
             case KeyEvent.VK_F11:
                 break;
@@ -356,6 +362,7 @@ public class Main extends JFrame implements KeyListener, GLEventListener {
     }
 
     @Override
-    public void keyReleased(KeyEvent keyEvent) {
+    public synchronized void keyReleased(KeyEvent e) {
+
     }
 }
