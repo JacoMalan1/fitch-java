@@ -34,6 +34,7 @@ allprojects {
 
     repositories {
         maven { url 'https://jitpack.io' }
+        maven { url 'https://mvnrepository.com' }
     }
 
 }
@@ -53,7 +54,6 @@ dependencies {
     // Compile-time libraries
     compile "org.jogamp.gluegen:gluegen-rt:2.3.1"
     compile "org.jogamp.jogl:jogl-all:2.3.1"
-    compile project('syphen2d')
 
     // Runtime libraries
     runtime "org.jogamp.gluegen:gluegen-rt:2.3.1:natives-android-aarch64"
@@ -79,6 +79,8 @@ dependencies {
     runtime "org.jogamp.jogl:jogl-all:2.3.1:natives-solaris-i586"
     runtime "org.jogamp.jogl:jogl-all:2.3.1:natives-windows-amd64"
     runtime "org.jogamp.jogl:jogl-all:2.3.1:natives-windows-i586"
+    
+    implementation "org.jbox2d:jbox2d-library:2.2.1.1"
 
     // Use JUnit test framework
     testImplementation 'junit:junit:4.12'

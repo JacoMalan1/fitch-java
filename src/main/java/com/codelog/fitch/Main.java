@@ -27,9 +27,6 @@ import com.codelog.fitch.game.Player;
 import com.codelog.fitch.graphics.Rectangle;
 import com.codelog.fitch.graphics.*;
 import com.codelog.fitch.math.Vector2;
-import com.codelog.syphen.World;
-import com.codelog.syphen.WorldBuilder;
-import com.codelog.syphen.math.Vec2;
 import com.jogamp.newt.event.KeyEvent;
 import com.jogamp.newt.event.KeyListener;
 import com.jogamp.newt.event.WindowAdapter;
@@ -38,9 +35,9 @@ import com.jogamp.newt.opengl.GLWindow;
 import com.jogamp.opengl.*;
 import com.jogamp.opengl.math.Matrix4;
 import com.jogamp.opengl.util.Animator;
+import org.jbox2d.common.Vec2;
+import org.jbox2d.dynamics.World;
 
-import javax.annotation.Nullable;
-import java.awt.*;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -50,14 +47,13 @@ import java.util.Map;
 public class Main implements KeyListener, GLEventListener {
 
     // Constants
-    private static final Vec2 GRAVITY = new Vec2(0, 0.8);
+    private static final Vector2 GRAVITY = new Vector2(0, 0.8);
 
     // Instance variables
     private GLWindow window;
     private Animator animator;
     private Player player;
     private List<Drawable> drawList;
-    private World world;
     private Map<String, Texture2D> textureMap;
     private long lastTime;
     private long minPeriod = (long)(1f / 60f * 100 * 10000000f); // Minimum time in nanoseconds between updates.
@@ -66,7 +62,13 @@ public class Main implements KeyListener, GLEventListener {
     private static boolean write_log = true;
     private static Logger logger;
     private static Rectangle background;
+    private static Mesh levelMesh;
     private static Level level;
+    private static HashMap<String, String> shaderSources;
+    public static World world;
+    public static double unitScalingFactor = 100;
+    public static int WIDTH = 800;
+    public static int HEIGHT = 600;
 
     private static String[] propsToLog = new String[] {
             "os.name", "os.arch", "os.version", "java.vendor", "java.vm.name", "java.version"
@@ -84,7 +86,7 @@ public class Main implements KeyListener, GLEventListener {
 
     }
 
-    public static void main(@Nullable String[] args) throws IllegalArgumentException {
+    public static void main(String[] args) throws IllegalArgumentException {
 
         // Parse commandline arguments.
         if (args != null) {
@@ -123,7 +125,9 @@ public class Main implements KeyListener, GLEventListener {
         //int width = Toolkit.getDefaultToolkit().getScreenSize().width;
         //int height = Toolkit.getDefaultToolkit().getScreenSize().height;
         //window.setSize(width, height);
-        window.setSize(800, 600);
+        window.setTitle("Fitch");
+        window.setSize(WIDTH, HEIGHT);
+
 
         window.setVisible(true);
         window.addKeyListener(this);
@@ -175,18 +179,14 @@ public class Main implements KeyListener, GLEventListener {
             logger.log(this, e);
         }
 
-        // Build world
-        WorldBuilder wb = new WorldBuilder();
-        wb.setGravity(GRAVITY);
-        wb.setAirResistance(1.1);
-        wb.setTerminalVelocity(10);
-        world = wb.toWorld();
-
         // Setup background
         background = new Rectangle(-200, -200, window.getWidth() + 200, window.getHeight() + 200);
         background.setDrawDepth(0.9f);
         background.setUseTexture(true);
         drawList.add(background);
+
+        Vec2 grav = new Vec2((float)GRAVITY.x, (float)GRAVITY.y);
+        world = new World(grav);
 
         // TODO: Implement level loading.
 
@@ -198,11 +198,23 @@ public class Main implements KeyListener, GLEventListener {
             window.sendWindowEvent(WindowEvent.EVENT_WINDOW_DESTROY_NOTIFY);
         }
 
+        // Init shaders
+        shaderSources = new HashMap<>();
+        shaderSources.put("block_v", "shaders/bvshader_tex.glsl");
+        shaderSources.put("block_f", "shaders/bfshader_tex.glsl");
+
+        MeshBuilder mb = new MeshBuilder();
+        mb.addVertexShader(shaderSources.get("block_v"));
+        mb.addFragmentShader(shaderSources.get("block_f"));
+
         for (Block b : level.getBlocks()) {
             b.getDrawRect().setUseTexture(true);
             b.getDrawRect().setDrawDepth(0.2f);
             drawList.add(b.getDrawRect());
         }
+
+        levelMesh = mb.toMesh();
+        //drawList.add(levelMesh);
 
         // Setup player
         var pwidth = 50;
@@ -222,11 +234,7 @@ public class Main implements KeyListener, GLEventListener {
 
         for (Block b : level.getBlocks()) {
             b.getDrawRect().setTexture(textureMap.get("solid"), false);
-            world.addBody(b.getBody());
         }
-
-        // Add every physics body
-        world.addBody(player.getPhysicsBody());
 
         logger.log(this, LogSeverity.INFO, "Initialising...");
 
@@ -302,24 +310,27 @@ public class Main implements KeyListener, GLEventListener {
         for (Drawable d : drawList)
             d.update(gl);
 
-        world.step(1);
+        world.step(1f / 10f, 30, 30);
 
     }
 
     private void render(GL4 gl) {
 
         // TODO: Optimize rendering.
+        // TODO: Fix translation accuracy
 
         Matrix4 mat = new Matrix4();
-        mat.makeOrtho(0, window.getWidth(), window.getHeight(), 0, 0f, 1f);
+        mat.makeOrtho(0, WIDTH, HEIGHT, 0, 0f, 1f);
 
         Vector2 pos = player.getPos();
-        float translateX = -((float)pos.x - (float)window.getWidth() / 2f) - player.getWidth() * 2f;
-        float translateY = -((float)pos.y - (float)window.getHeight() / 2f);
+        double translateX = Math.floor(-pos.x - player.getWidth() / 2 + (double)WIDTH / 2);
+        double translateY = Math.floor(-pos.y - player.getHeight() / 2 + (double)HEIGHT / 2);
 
-        mat.translate(translateX, translateY, 0f);
+        Matrix4 transMat = new Matrix4();
+        transMat.translate((float)translateX, (float)translateY, 0f);
 
         MatrixStack<Matrix4> stack = new MatrixStack<>();
+        stack.push(transMat);
         stack.push(mat);
 
         background.setPos(new Vector2(-translateX, -translateY));
@@ -348,12 +359,13 @@ public class Main implements KeyListener, GLEventListener {
             case KeyEvent.VK_F11:
                 break;
             case KeyEvent.VK_SPACE:
+                player.getBody().applyForceToCenter(new Vec2(0, -10));
                 break;
             case KeyEvent.VK_D:
-                player.getPhysicsBody().applyForce(new Vec2(3, 0));
+                player.getBody().applyForceToCenter(new Vec2(2, 0));
                 break;
             case KeyEvent.VK_A:
-                player.getPhysicsBody().applyForce(new Vec2(-3, 0));
+                player.getBody().applyForceToCenter(new Vec2(-2, 0));
                 break;
             default:
                 break;
@@ -365,4 +377,43 @@ public class Main implements KeyListener, GLEventListener {
     public synchronized void keyReleased(KeyEvent e) {
 
     }
+
+    /**
+     * Converts pixel coordinates to Box2D coords.
+     * @param pixelCoord Pixel-space coords.
+     */
+    public static Vec2 pixelsToWorld(Vector2 pixelCoord) {
+
+        double wx =  (WIDTH / 2f + pixelCoord.x) / unitScalingFactor;
+        double wy = (HEIGHT / 2f + pixelCoord.y) / unitScalingFactor;
+
+        return new Vec2((float)wx, (float)wy);
+
+    }
+
+    /**
+     * Converts Box2D coords to pixel coords.
+     * @param worldCoord World-space coords
+     */
+    public static Vector2 worldToPixels(Vec2 worldCoord) {
+
+        double px = worldCoord.x * unitScalingFactor - WIDTH / 2f;
+        double py = worldCoord.y * unitScalingFactor - HEIGHT / 2f;
+
+        return new Vector2(px, py);
+
+    }
+
+    /**
+     * Converts scalars from pixel-space to Box2D-space.
+     * @param scalar Scalar to convert
+     */
+    public static double scalarPToW(double scalar) { return scalar / unitScalingFactor; }
+
+    /**
+     * Converts scalars from Box2D-space to pixel-space.
+     * @param scalar Scalar to convert
+     */
+    public static double scalarWToP(double scalar) { return scalar * unitScalingFactor; }
+
 }

@@ -66,8 +66,27 @@ public class VertexBufferObject {
 
     }
 
+    public void sendIntData(GL4 gl, int[] data, int usage) {
+
+        IntBuffer buffer = GLBuffers.newDirectIntBuffer(data);
+        bind(gl);
+
+        if (!dataSent) {
+            gl.glBufferData(this.type, data.length * Integer.BYTES, buffer, usage);
+            dataSent = true;
+        } else {
+            gl.glBufferSubData(this.type, 0, data.length * Integer.BYTES, buffer);
+        }
+
+        unbind(gl);
+
+    }
+
     public void sendFloatData(GL4 gl, float[] data) {
         sendFloatData(gl, data, gl.GL_DYNAMIC_DRAW);
+    }
+    public void sendIntData(GL4 gl, int[] data) {
+        sendIntData(gl, data, gl.GL_DYNAMIC_DRAW);
     }
 
 }

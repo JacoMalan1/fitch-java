@@ -8,5 +8,3 @@
  */
 
 rootProject.name = 'Fitch'
-include ':syphen2d'
-project(':syphen2d').projectDir = new File(settingsDir, '../syphen2d')

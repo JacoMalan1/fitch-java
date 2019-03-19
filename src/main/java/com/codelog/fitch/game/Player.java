@@ -22,11 +22,11 @@ package com.codelog.fitch.game;
 
 import com.codelog.fitch.Main;
 import com.codelog.fitch.graphics.*;
-import com.codelog.syphen.Body;
-import com.codelog.syphen.math.Vec2;
 import com.jogamp.opengl.GL4;
 import com.jogamp.opengl.math.Matrix4;
 import com.codelog.fitch.math.Vector2;
+import org.jbox2d.collision.shapes.PolygonShape;
+import org.jbox2d.dynamics.*;
 
 import java.io.IOException;
 
@@ -42,7 +42,7 @@ public class Player implements Drawable {
     private boolean isRunning = false;
     private float drawDepth = 0f;
     private Texture2D texture;
-    private Body physicsBody;
+    private Body body;
 
     private ShaderProgram shaderProgram;
     private VertexArrayObject vao;
@@ -82,8 +82,8 @@ public class Player implements Drawable {
 
         Matrix4 ident = new Matrix4();
         matrixStack.push(ident);
-        var newPos = physicsBody.getPos();
-        this.pos = new Vector2(newPos.x, newPos.y);
+
+        this.pos = Main.worldToPixels(body.getPosition());
 
     }
 
@@ -114,7 +114,23 @@ public class Player implements Drawable {
             Main.getLogger().log(this, e);
         }
 
-        this.physicsBody = new Body(new Vec2(this.pos.x, this.pos.y), 1.0, new com.codelog.syphen.shapes.Rectangle(new Vec2(this.pos.x, this.pos.y), this.width, this.height));
+        // Init Box2D body
+        var bodyDef = new BodyDef();
+        bodyDef.position = Main.pixelsToWorld(pos);
+        bodyDef.type = BodyType.DYNAMIC;
+        bodyDef.fixedRotation = true;
+
+        var shape = new PolygonShape();
+        shape.setAsBox((float)Main.scalarPToW(width / 2), (float)Main.scalarPToW(height / 2));
+
+        var fixtureDef = new FixtureDef();
+        fixtureDef.shape = shape;
+
+        body = Main.world.createBody(bodyDef);
+        fixtureDef.density = 1;
+        fixtureDef.friction = 0.3f;
+        fixtureDef.restitution = 0f;
+        body.createFixture(fixtureDef);
 
     }
 
@@ -157,10 +173,10 @@ public class Player implements Drawable {
     public boolean getRunning() { return isRunning; }
     public boolean getStanding() { return isStanding; }
 
-    public Body getPhysicsBody() { return physicsBody; }
-
     public float getDrawDepth() { return drawDepth; }
     public void setDrawDepth(float _dd) { drawDepth = _dd; }
+
+    public Body getBody() { return body; }
 
     public void setTexture(Texture2D texture, boolean changeDims) {
         this.texture = texture;

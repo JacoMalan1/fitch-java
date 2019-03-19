@@ -86,6 +86,14 @@ public class Rectangle implements Drawable {
         vao.bind(gl);
         vbo.bind(gl);
 
+        float[] vertices = getVertices();
+
+        vbo.sendFloatData(gl, vertices, gl.GL_DYNAMIC_DRAW);
+
+    }
+
+    public float[] getVertices() {
+
         float x = (float)pos.x;
         float y = (float)pos.y;
 
@@ -106,8 +114,7 @@ public class Rectangle implements Drawable {
             };
         }
 
-        vbo.sendFloatData(gl, vertices, gl.GL_DYNAMIC_DRAW);
-
+        return vertices;
     }
 
     @Override
@@ -160,6 +167,7 @@ public class Rectangle implements Drawable {
     }
 
     public void setPos(Vector2 pos) { this.pos = new Vector2(pos.x, pos.y); }
+    public Vector2 getPos() { return this.pos; }
     public void setDrawDepth(float drawDepth) { this.drawDepth = drawDepth; }
     public void setUseTexture(boolean useTexture) { this.useTexture = useTexture; }
 

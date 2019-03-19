@@ -39,3 +39,8 @@
 
 * Added Vector4 class.
 * Converted Colour class to use Vector4.
+
+## v0.2.0 -- 20-03-2019
+
+* Switched to the Box2D physics engine.
+* Optimized rendering quite a bit.
