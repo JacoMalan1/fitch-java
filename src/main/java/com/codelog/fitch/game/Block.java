@@ -28,9 +28,10 @@ public class Block {
         var bodyDef = new BodyDef();
         bodyDef.position = Main.pixelsToWorld(getScreenPos());
         bodyDef.type = BodyType.STATIC;
+        bodyDef.fixedRotation = true;
 
         var shape = new PolygonShape();
-        shape.setAsBox((float)Main.scalarPToW(BLOCK_SIZE / 2f), (float)Main.scalarPToW(BLOCK_SIZE / 2f));
+        shape.setAsBox((float)Main.scalarPToW(BLOCK_SIZE) / 4f, (float)Main.scalarPToW(BLOCK_SIZE) / 4f);
 
         var fixtureDef = new FixtureDef();
         fixtureDef.shape = shape;

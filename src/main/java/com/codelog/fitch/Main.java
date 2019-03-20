@@ -1,7 +1,7 @@
 /*
 
 A platformer game written using OpenGL.
-    Copyright (C) 2017-2018  Jaco Malan
+    Copyright (C) 2017-2019  Jaco Malan
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -44,6 +44,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+@SuppressWarnings({"WeakerAccess", "FieldCanBeLocal"})
 public class Main implements KeyListener, GLEventListener {
 
     // Constants

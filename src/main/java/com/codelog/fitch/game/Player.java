@@ -121,7 +121,7 @@ public class Player implements Drawable {
         bodyDef.fixedRotation = true;
 
         var shape = new PolygonShape();
-        shape.setAsBox((float)Main.scalarPToW(width / 2), (float)Main.scalarPToW(height / 2));
+        shape.setAsBox((float)Main.scalarPToW(width) / 2f, (float)Main.scalarPToW(height) / 2f);
 
         var fixtureDef = new FixtureDef();
         fixtureDef.shape = shape;
