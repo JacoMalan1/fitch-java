@@ -1,4 +1,4 @@
-package com.codelog.fitch;
+package com.codelog.fitch.logging;
 
 @SuppressWarnings("unused")
 public enum LogSeverity {

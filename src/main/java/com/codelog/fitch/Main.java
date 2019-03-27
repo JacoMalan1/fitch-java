@@ -26,6 +26,8 @@ import com.codelog.fitch.game.LevelParseException;
 import com.codelog.fitch.game.Player;
 import com.codelog.fitch.graphics.Rectangle;
 import com.codelog.fitch.graphics.*;
+import com.codelog.fitch.logging.LogSeverity;
+import com.codelog.fitch.logging.Logger;
 import com.codelog.fitch.math.Vector2;
 import com.jogamp.newt.event.KeyEvent;
 import com.jogamp.newt.event.KeyListener;
@@ -80,10 +82,9 @@ public class Main implements KeyListener, GLEventListener {
     private static void sendHelp() {
 
         // Shows commandline help message.
-        StringBuilder sb = new StringBuilder();
-
-        sb.append("Usage: fitch <arguments>\n\n");
-        sb.append("\t--no-log\tDo not write log info to a file.\n");
+        String sb = "Usage: fitch <arguments>\n\n" +
+                    "\t--no-log\tDo not write log info to a file.\n";
+        System.out.println(sb);
 
     }
 

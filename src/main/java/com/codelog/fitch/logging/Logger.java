@@ -1,4 +1,4 @@
-package com.codelog.fitch;
+package com.codelog.fitch.logging;
 
 import java.io.File;
 import java.io.FileWriter;
